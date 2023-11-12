@@ -5,6 +5,8 @@
 ### run below command
 `docker-compose up -d`
 
+### wait for 30 sec - 1 minute, then
+
 ### open http://localhost:8899/ in the browser
 ```
 there are 2 type of login
