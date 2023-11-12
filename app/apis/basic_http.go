@@ -23,13 +23,18 @@ func sign_in(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res, err := app_db.SQLExecTimeout(req.Context(), `INSERT INTO users(name,email) values(?,?)`, name, email)
+	var user_id int64
+	err := app_db.DATABASE_CONN.QueryRow("SELECT user_id FROM users where email = ?;", email).Scan(&user_id)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Error in sign in", http.StatusBadGateway)
-		return
+		res, err := app_db.SQLExecTimeout(req.Context(), `INSERT INTO users(name,email) values(?,?)`, name, email)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, "Error in sign in", http.StatusBadGateway)
+			return
+		}
+		user_id, _ = res.LastInsertId()
 	}
-	user_id, _ := res.LastInsertId()
 	expiry := time.Now().Add(time.Minute * 10)
 	http.SetCookie(w, &http.Cookie{Name: "email", Value: email, HttpOnly: false, Expires: expiry})
 	http.SetCookie(w, &http.Cookie{Name: "user_id", Value: fmt.Sprintf("%d", user_id), HttpOnly: false, Expires: expiry})

@@ -13,19 +13,25 @@ import (
 type Auction struct {
 	AuctionID   string `json:"auction_id"`
 	Title       string `json:"title"`
-	PublishedBy string `json:"published_by,omitempty"`
+	PublishedBy string `json:"published_by"`
 	BidPrice    string `json:"bid_highest_price"`
 	CloseAt     string `json:"close_at"`
-	BidedBy     string `json:"bided_by,omitempty"`
-	BidedById   string `json:"bided_by_id,omitempty"`
+	BidedBy     string `json:"bided_by"`
+	BidedById   string `json:"bided_by_id"`
 }
 
 func list_supply(w http.ResponseWriter, req *http.Request) {
-	close_at := time.Now()
+	// close_at := time.Now().In(time.UTC).Format(time.RFC3339)
+	// close_at := time.Now().UTC().Format(time.RFC3339) //"2023-11-12T11:20:54Z"
+	// close_at := time.Now().Format(time.RFC3339) // "2023-11-12T16:51:22+05:30"
+
 	var auctions_row *sql.Rows
 	var err error
+	user_id, _ := req.Cookie("user_id")
+	t := app_utils.ToUTCDateString(time.Now())
 	if req.URL.Query().Get("all") != "true" {
-		auctions_row, err = app_db.SQLQueryTimeout(req.Context(), `SELECT auction_id,title,bid_highest_price,close_at,"" AS bidding_user,"" AS name,published_by from auction_services where close_at > ?;`, close_at)
+		auctions_row, err = app_db.SQLQueryTimeout(req.Context(), `SELECT auction_id,title,bid_highest_price,close_at, IFNULL(bidding_user, ""),"" AS bidder_name,email as published_by from auction_services INNER JOIN users ON published_by=user_id WHERE close_at >= ? AND published_by != ?;`, t, user_id.Value)
+
 	} else {
 		// user_id, err := req.Cookie("user_id")
 		// if err != nil {
@@ -33,7 +39,7 @@ func list_supply(w http.ResponseWriter, req *http.Request) {
 		// 	http.Error(w, "please login as supplier", http.StatusBadGateway)
 		// 	return
 		// }
-		auctions_row, err = app_db.SQLQueryTimeout(req.Context(), `SELECT auction_id,title,bid_highest_price,close_at,bidding_user,name AS bidder_name,"" AS published_by from auction_services LEFT JOIN users ON bidding_user=user_id;`)
+		auctions_row, err = app_db.SQLQueryTimeout(req.Context(), `SELECT auction_id,title,bid_highest_price,close_at,bidding_user,email AS bidder_name,"" AS published_by from auction_services LEFT JOIN users ON bidding_user=user_id WHERE published_by = ?;`, user_id.Value)
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -72,7 +78,7 @@ func bid_service(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	close_at := time.Now()
+	close_at := app_utils.ToUTCDateString(time.Now())
 
 	var bid_highest_price string
 	err := app_db.DATABASE_CONN.QueryRow("SELECT bid_highest_price from auction_services where auction_id = ?;", auction_id).Scan(&bid_highest_price)
@@ -90,7 +96,7 @@ func bid_service(w http.ResponseWriter, req *http.Request) {
 
 	user_id, _ := req.Cookie("user_id")
 
-	res, err := app_db.SQLExecTimeout(req.Context(), `UPDATE auction_services SET bid_highest_price = ?,bidding_user = ? WHERE auction_id = ? AND published_by!=? AND bid_highest_price < ? AND close_at > ?;`, bid_price, user_id.Value, auction_id, user_id.Value, bid_price, close_at)
+	res, err := app_db.SQLExecTimeout(req.Context(), `UPDATE auction_services SET bid_highest_price = ?,bidding_user = ? WHERE auction_id = ? AND published_by!=? AND bid_highest_price < ? AND close_at >= ?;`, bid_price, user_id.Value, auction_id, user_id.Value, bid_price, close_at)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "Error in bidding for auction", http.StatusBadGateway)

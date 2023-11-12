@@ -53,7 +53,7 @@ func ConnectToDB() {
 		panic(err)
 	}
 
-	dbConnectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
+	dbConnectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
 	DATABASE_CONN, err = sql.Open("mysql", dbConnectionString)
 	if err != nil {
 		fmt.Printf("connection string: %s\n", dbConnectionString)
@@ -67,7 +67,7 @@ func DBInit() {
 	CREATE TABLE IF NOT EXISTS users (
 		user_id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
 		name varchar(255) NOT NULL,
-		email varchar(255) NOT NULL
+		email varchar(255) NOT NULL UNIQUE
 	)
 	`)
 	if err != nil {
