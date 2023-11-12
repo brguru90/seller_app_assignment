@@ -1,0 +1,72 @@
+networks:
+  dockernet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.55.0/24
+          gateway: 192.168.55.1
+services:
+  ubuntu_os:
+    hostname: dev_env
+    networks:
+      dockernet:
+        ipv4_address: 192.168.55.10
+        aliases:
+          - dev_env
+    build:
+      args:
+        expose_port: "8899"
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ubuntu_os
+    depends_on:
+      - mysqldb
+    deploy:
+      resources:
+        limits:
+          cpus: 0.7
+          memory: 4G
+        reservations:
+          cpus: 0.25
+          memory: 1G
+    ports:
+      - 8899:8899
+      - 3000:3000
+      - "8822:22"
+    restart: always
+    user: "${MY_UID}"
+    # volumes:
+    #   - ./data/:/app/:rw
+    environment:
+      - SERVER_PORT=8899
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=auction_assignment
+      - DB_HOST=mysqldb
+      - DB_PORT=3306
+      - DB_TIMEOUT_SEC=5
+
+  mysqldb:
+    container_name: mysqldb
+    deploy:
+      resources:
+        limits:
+          cpus: 0.4
+          memory: 2G
+        reservations:
+          cpus: 0.1
+          memory: 1G
+    environment:
+      MYSQL_DATABASE: mysql
+      MYSQL_HOST: mysqldb
+      MYSQL_PASS: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: root
+    image: mysql:5.7.31
+    networks:
+      - dockernet
+    ports:
+      - 3310:3306
+    restart: always
+version: "3.8"

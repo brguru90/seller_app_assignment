@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      table,
+      th,
+      td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 5px;
+      }
+    </style>
+    <script defer>
+      if (!document.cookie.includes("user_id")) window.location.assign("/");
+
+      function display_auctions(auctions) {
+        const node = document.querySelector(".existing_auctions");
+        if (auctions.length == 0) {
+          node.innerHTML = "";
+          return;
+        }
+
+        const ths = Object.keys(auctions[0]).map(
+          (fields) => "<th>" + fields + "</th>"
+        );
+        ths.push("<th>price</th>");
+        ths.push("<th>action</th>");
+
+        const trs = auctions.map((auction) => {
+          const tds = Object.values(auction).map(
+            (fields) => "<td>" + fields + "</td>"
+          );
+          tds.push(
+            "<td><input type='number' auction_id='" +
+              auction["auction_id"] +
+              "' /></td>"
+          );
+          tds.push(
+            "<td><input type='button' value='bid' onclick='bid(this)' auction_id='" +
+              auction["auction_id"] +
+              "' /></td>"
+          );
+          return "<tr>" + tds.join("") + "</tr>";
+        });
+        trs.unshift("<tr>" + ths.join("") + "</tr>");
+        node.innerHTML = "<table>" + trs.join("\n") + "</table>";
+      }
+
+      function getAllAuctions() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            display_auctions(JSON.parse(this.responseText));
+          }
+        };
+        xhttp.open("GET", "/list_supply");
+        xhttp.send();
+      }
+
+      function bid(e) {
+        const auction_id = e.getAttribute("auction_id");
+        const price = document.querySelector(
+          "input[type=number][auction_id='" + auction_id + "']"
+        ).value;
+        console.log(price);
+
+        const form = document.querySelector("#signup");
+        const formData = new FormData();
+        formData.append("auction_id", auction_id);
+        formData.append("bid_price", price);
+        const xhttp = new XMLHttpRequest();
+        const is_supplier = formData.has("is_supplier");
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4) {
+            if (this.status == 200) {
+              alert(this.responseText);
+              getAllAuctions()
+            } else {
+              alert(this.responseText);
+            }
+          }
+        };
+        xhttp.open("POST", "/bid_service");
+        xhttp.send(formData);
+      }
+
+      function logout() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            window.location.assign("/");
+          }
+        };
+        xhttp.open("GET", "/sign_out");
+        xhttp.send();
+      }
+
+      getAllAuctions();
+
+      //   setInterval(getAllAuctions,2000)
+    </script>
+  </head>
+  <body>
+    <h1>Biders <button onclick="logout()">Logout</button></h1>
+
+    <div class="existing_auctions"></div>
+  </body>
+</html>

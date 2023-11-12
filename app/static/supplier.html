@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      table,
+      th,
+      td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 5px;
+      }
+    </style>
+    <script>
+      if (!document.cookie.includes("user_id")) window.location.assign("/");
+      function display_auctions(auctions) {
+        const node = document.querySelector(".existing_auctions");
+        if (auctions.length == 0) {
+          node.innerHTML=""
+          return
+        };
+
+       
+
+        let len=Object.keys(auctions[0]).length
+        let indx=0
+        const trs = auctions.map((auction,i) => {
+          const len2=Object.values(auction).length
+          if(len2>len){
+            indx=i
+          }
+          const tds = Object.values(auction).map(
+            (fields) => "<td>" + fields + "</td>"
+          );
+          return "<tr>" + tds.join("") + "</tr>";
+        });
+        const ths=Object.keys(auctions[indx]).map(
+            (fields) => "<th>" + fields + "</th>"
+        );
+        trs.unshift("<tr>" + ths.join("") + "</tr>")
+        // console.log(trs);
+        node.innerHTML = "<table>" + trs.join("\n") + "</table>";
+        // console.log(node.innerHTML);
+      }
+
+      function getAllAuctions() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            display_auctions(JSON.parse(this.responseText));
+          }
+        };
+        xhttp.open("GET", "/list_supply?all=true");
+        xhttp.send();
+      }
+
+      function submitForm() {
+        const form = document.querySelector("form");
+        const formData = new FormData(form);
+        formData.set("close_at", new Date(formData.get("close_at")).getTime());
+        const xhttp = new XMLHttpRequest();
+        const is_supplier = formData.has("is_supplier");
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            // console.log(this.responseText);
+            // if (src == "is_supplier") {
+            //   window.location.assign("/supplier.html");
+            // }
+            getAllAuctions();
+          }
+        };
+        xhttp.open("POST", "/publish_auction");
+        xhttp.send(formData);
+      }
+
+      function logout() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            window.location.assign("/");
+          }
+        };
+        xhttp.open("GET", "/sign_out");
+        xhttp.send();
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Supplier <button onclick="logout()">Logout</button></h1>
+
+    <form onsubmit="submitForm();return false;">
+      <label>Ad Title: <input type="text" name="title" value="" required /> </label>
+      <label> Price: <input type="number" name="price" value="" required /> </label>
+      <label>
+        Ends at: <input type="date" class="close_at" name="close_at" value="" required/>
+      </label>
+      <input type="submit" value="publish" />
+    </form>
+
+    <br /><br /><br />
+    <div class="existing_auctions"></div>
+
+    <script>
+      const dt = new Date();
+      document.querySelector("form").querySelector(".close_at").min =
+        dt.getFullYear() + "-" + (dt.getMonth() + 1) + "-" + dt.getDate();
+      getAllAuctions();
+    </script>
+  </body>
+</html>
