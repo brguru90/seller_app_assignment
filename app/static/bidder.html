@@ -36,7 +36,7 @@
           tds.push(
             "<td><input type='number' auction_id='" +
               auction["auction_id"] +
-              "' /></td>"
+              "' value='"+(Number(auction["bid_highest_price"])+1)+"' /></td>"
           );
           tds.push(
             "<td><input type='button' value='bid' onclick='bid(this)' auction_id='" +
