@@ -15,4 +15,4 @@ there are 2 type of login
 ```
 
 
-### Note: only the poc for auction, bid flow & user identification is implemented
+### Note: only the poc for auction, bidding flow & simple user identification is implemented
